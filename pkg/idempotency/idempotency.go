@@ -19,14 +19,13 @@ type Record struct {
 	ResponseBody []byte
 }
 
-// Store defines the interface for idempotency storage (Redis, DB, etc.)
 type Store interface {
 	Get(key string) (*Record, bool)
 	SetIfAbsent(key string, record Record) bool
 	Update(key string, record Record)
 }
 
-// MemoryStore is a simple in-memory implementation of Store
+// MemoryStore simple in-memory implementation of Store
 type MemoryStore struct {
 	mu      sync.RWMutex
 	records map[string]Record
@@ -61,7 +60,6 @@ func (s *MemoryStore) Update(key string, record Record) {
 	s.records[key] = record
 }
 
-// Middleware creates an idempotency middleware
 func Middleware(store Store) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -71,7 +69,7 @@ func Middleware(store Store) func(http.Handler) http.Handler {
 				return
 			}
 
-			// 1. Check if key exists
+			// Check if key exists
 			if record, ok := store.Get(key); ok {
 				if record.Status == StatusProcessing {
 					http.Error(w, "Request already in progress", http.StatusConflict)
@@ -84,9 +82,8 @@ func Middleware(store Store) func(http.Handler) http.Handler {
 				}
 			}
 
-			// 2. Try to set as processing
+			// Try to set as processing
 			if !store.SetIfAbsent(key, Record{Status: StatusProcessing}) {
-				// Re-check in case it finished or another thread won
 				if record, ok := store.Get(key); ok {
 					if record.Status == StatusProcessing {
 						http.Error(w, "Request already in progress", http.StatusConflict)
@@ -98,7 +95,6 @@ func Middleware(store Store) func(http.Handler) http.Handler {
 				}
 			}
 
-			// 3. Capture the response
 			rec := &responseRecorder{
 				ResponseWriter: w,
 				body:           new(bytes.Buffer),
@@ -106,7 +102,6 @@ func Middleware(store Store) func(http.Handler) http.Handler {
 
 			next.ServeHTTP(rec, r)
 
-			// 4. Save the result
 			store.Update(key, Record{
 				Status:       StatusCompleted,
 				StatusCode:   rec.statusCode,

@@ -12,7 +12,6 @@ type SQLStore struct {
 }
 
 func NewSQLStore(db *sql.DB) *SQLStore {
-	// Create table if not exists (Postgres syntax)
 	query := `
 	CREATE TABLE IF NOT EXISTS idempotency_keys (
 		key TEXT PRIMARY KEY,
@@ -31,11 +30,10 @@ func NewSQLStore(db *sql.DB) *SQLStore {
 func (s *SQLStore) Get(key string) (*Record, bool) {
 	var record Record
 	var body []byte
-	
-	// Postgres uses $1, $2 for placeholders
+
 	query := `SELECT status, status_code, response_body FROM idempotency_keys WHERE key = $1`
 	err := s.db.QueryRow(query, key).Scan(&record.Status, &record.StatusCode, &body)
-	
+
 	if err == sql.ErrNoRows {
 		return nil, false
 	}
@@ -48,11 +46,10 @@ func (s *SQLStore) Get(key string) (*Record, bool) {
 }
 
 func (s *SQLStore) SetIfAbsent(key string, record Record) bool {
-	// Postgres "ON CONFLICT DO NOTHING" is the equivalent of "INSERT OR IGNORE"
 	query := `INSERT INTO idempotency_keys (key, status, status_code, response_body) 
 			  VALUES ($1, $2, $3, $4) 
 			  ON CONFLICT (key) DO NOTHING`
-	
+
 	res, err := s.db.Exec(query, key, record.Status, record.StatusCode, record.ResponseBody)
 	if err != nil {
 		return false
