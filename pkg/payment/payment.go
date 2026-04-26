@@ -26,6 +26,7 @@ func ExecutePayment(
 		resp, err = client.Do(reqWithCtx)
 
 		if err == nil && resp.StatusCode >= 200 && resp.StatusCode < 300 {
+			log.Printf("Attempt %d: Success!", attempt+1)
 			return resp, nil
 		}
 

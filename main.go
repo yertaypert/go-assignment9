@@ -44,6 +44,4 @@ func main() {
 		log.Fatalf("Final error: %v", err)
 	}
 	defer resp.Body.Close()
-
-	log.Println("Final response received successfully")
 }

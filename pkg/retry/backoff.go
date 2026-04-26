@@ -6,8 +6,8 @@ import (
 )
 
 const (
-	baseDelay = 100 * time.Millisecond
-	maxDelay  = 5 * time.Second
+	baseDelay = 500 * time.Millisecond
+	maxDelay  = 10 * time.Second
 )
 
 func CalculateBackoff(attempt int) time.Duration {
@@ -16,10 +16,6 @@ func CalculateBackoff(attempt int) time.Duration {
 		delay = maxDelay
 	}
 
-	minDelay := delay / 2
-	if minDelay == 0 {
-		return time.Duration(rand.Int63n(int64(delay)))
-	}
-
-	return minDelay + time.Duration(rand.Int63n(int64(delay-minDelay)))
+	jitter := time.Duration(rand.Int63n(int64(delay / 2)))
+	return delay + jitter
 }
